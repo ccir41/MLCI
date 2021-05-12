@@ -11,7 +11,7 @@ np.random.seed(10)
 
 
 class NeuralNetwork:
-    """ Neural Network parameters """
+    """ Neural Network Class """
 
     def __init__(self, _in=2, _hl=[2, 2], _on=1, _lr=0.1):
         """
@@ -141,35 +141,42 @@ class NeuralNetwork:
         plt.title("Plot of Mean square error versus number of Epoch")
         plt.show()
 
-    def test(self):
-        """ Test the model accuracy """
-        pass
-
-    def make_datasets(self, filename):
+    def make_datasets(self, filename, df_dtype):
         """ Import datasets and split into training and testing """
 
+        if df_dtype:
+            df = pd.read_csv(filename, dtype=df_dtype)
         df = pd.read_csv(filename)
         train = df.sample(frac=0.9, random_state=RandomState())
         test = df.loc[~df.index.isin(train.index)]
-        train.to_csv('train.csv', index=False)
-        test.to_csv('test.csv', index=False)
+        train.to_csv(f'{filename}_train.csv', index=False)
+        test.to_csv(f'{filename}_test.csv', index=False)
 
-    def import_datasets(self, train=True):
+    def import_datasets(self, filename, df_dtype, output_label='class', train=True, classification=True):
         """ Import datasets for training and testing """
+
         if train:
-            df = pd.read_csv('./train.csv')
+            df = pd.read_csv(f'{filename}_train.csv', dtype=df_dtype)
         else:
-            df = pd.read_csv('./test.csv')
-        X, y = df.loc[:, df.columns != 'class'].to_numpy(
-            dtype=float), df['class'].to_numpy(dtype=int)
-        # X = (X-X.min())/(X.max()-X.min())
+            df = pd.read_csv(f'{filename}_test.csv', dtype=df_dtype)
+        try:
+            X, y = df.loc[:, df.columns != output_label].to_numpy(
+                dtype=float), df[output_label].to_numpy(dtype=df_dtype[f"{output_label}"])
+        except:
+            import sys
+            print("Datasets error! Please verify that the datasets is csv file format.")
+            sys.exit()
+        X = (X-X.min())/(X.max()-X.min())
         # mean normailization
-        X = (X-X.mean())/X.std()
-        distinct_y = list(set(y))
-        # if multi class problem then encode output
-        if len(distinct_y) > 2:
-            encoded_output = self.encode_output(y, distinct_y)
-            return X, encoded_output
+        #X = (X-X.mean())/X.std()
+        if classification:
+            distinct_y = list(set(y))
+            """ if multi class problem then encode output """
+            if len(distinct_y) > 2:
+                encoded_output = self.encode_output(y, distinct_y)
+                return X, encoded_output
+        #y = (y-y.mean())/y.std()
+        y = (y-y.min())/(y.max()-y.min())
         y = y.reshape(y.shape[0], -1)
         return X, y
 
@@ -206,31 +213,89 @@ if __name__ == "__main__":
     """ Run Script """
 
     """
-        7 features so 7 input neurons
-        hidden layers of our choice 
-        3 class of wheat so 3 output neurons
-        learning rate of our choice  
-    """
-    nn = NeuralNetwork(7, [5, 5], 3, 0.3)
-    filename = './seeds.csv'
-    nn.make_datasets(filename)
-    X, y = nn.import_datasets()
-    nn.train(X, y, 3000)
-    test, target = nn.import_datasets(train=False)
-    output = nn.forward(test)
-    decoded_output = nn.decode_output(output, test=False, threshold=0.75)
-    target = nn.decode_output(target, threshold=0.75)
-    accuracy = nn.model_accuracy(target, decoded_output)
-    print(f"\nAccuracy of the model is {accuracy*100}%")
+        Seeds datasets
 
+        7 features so 7 input neurons
+        hidden layers of our choice
+        3 class of wheat so 3 output neurons
+        learning rate of our choice
     """
-    # XOR gate
-    X, y = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]), np.array([[0], [1], [1], [0]])
+
+    # nn = NeuralNetwork(7, [5, 5], 3, 0.3)
+    # filename = './seeds/seeds.csv'
+    # df_dtype = {
+    #     "F1": float,
+    #     "F2": float,
+    #     "F3": float,
+    #     "F4": float,
+    #     "F5": float,
+    #     "F6": float,
+    #     "F7": float,
+    #     "class": int
+    # }
+    # nn.make_datasets(filename, df_dtype)
+    # X, y = nn.import_datasets(
+    #     filename, df_dtype, output_label='class', classification=True)
+    # nn.train(X, y, 3000)
+    # test, target = nn.import_datasets(
+    #     filename, df_dtype, output_label='class', train=False, classification=True)
+    # output = nn.forward(test)
+    # decoded_output = nn.decode_output(output, test=False, threshold=0.75)
+    # target = nn.decode_output(target, threshold=0.75)
+    # accuracy = nn.model_accuracy(target, decoded_output)
+    # print(f"\nAccuracy of the model is {accuracy*100}%")
+
+    """ ccpp datasets """
+    # nn = NeuralNetwork(4, [8], 1, 0.3)
+    # filename = './ccpp/ccpp1.csv'
+    # df_dtype = {
+    #     "AT": float,
+    #     "V": float,
+    #     "AP": float,
+    #     "RH": float,
+    #     "PE": float
+    # }
+    # nn.make_datasets(filename, df_dtype)
+    # X, y = nn.import_datasets(
+    #     filename,
+    #     df_dtype,
+    #     output_label='PE',
+    #     classification=False
+    # )
+    # nn.train(X, y, 3000)
+    # test, target = nn.import_datasets(
+    #     filename,
+    #     df_dtype,
+    #     output_label='PE',
+    #     train=False,
+    #     classification=False
+    # )
+    # output = nn.forward(test)
+    # decoded_output = nn.decode_output(output, test=False, threshold=0.75)
+    # target = nn.decode_output(target, threshold=0.75)
+    # accuracy = nn.model_accuracy(target, decoded_output)
+    # print(f"\nAccuracy of the model is {accuracy*100}%")
+
+    """ create a dataset to train a network for the sum operation """
+    # from random import random
+    # X = np.array([[random()/2 for _ in range(2)] for _ in range(1000)])
+    # y = np.array([[i[0] + i[1]] for i in X])
+    # nn = NeuralNetwork(2, [5], 1, 0.1)
+    # nn.train(X, y, 50)
+    # inputs = np.array([0.3, 0.1])
+    # target = np.array([0.4])
+    # output = nn.forward(inputs)
+    # print(f"For {inputs[0]} + {inputs[1]} output is {output[0]}")
+
+    """ XOR gate realization """
+    X, y = np.array([[0, 0], [0, 1], [1, 0], [1, 1]]
+                    ), np.array([[0], [1], [1], [0]])
     nn = NeuralNetwork(2, [2], 1, 0.1)
-    nn.train(X, y, 50000)
+    nn.train(X, y, 10000)
     output = nn.forward(X)
     decoded_output = nn.decode_output(output, test=False, threshold=0.8)
     target = nn.decode_output(y, threshold=0.8)
     accuracy = nn.model_accuracy(target, decoded_output)
     print(f"\nAccuracy of the model is {accuracy*100}%")
-    """
+    print(nn.weights)
+    print(nn.biases)
